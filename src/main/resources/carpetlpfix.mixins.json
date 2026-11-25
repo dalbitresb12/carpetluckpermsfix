@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.dalbitresb.carpetlpfix.mixin",
+  "plugin": "com.dalbitresb.carpetlpfix.MixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "EntityPlayerMPFakeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
