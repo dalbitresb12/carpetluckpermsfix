@@ -1,25 +1,9 @@
+# Carpet LuckPerms Fix
 
-Installation information
-=======
+Fix for [Carpet](https://modrinth.com/mod/carpet) (and [Carpet: NeoForged](https://modrinth.com/mod/neoforge-carpet)) to pre-load [LuckPerms](https://modrinth.com/plugin/luckperms) user data when Carpet spawns a fake player.
 
-This template repository can be directly cloned to get you started with a new
-mod. Simply create a new repository cloned from this one, by following the
-instructions provided by [GitHub](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
+This prevents issues where a fake player can't login or users are unable to run commands when other mods query LuckPerms when a player logins or interacts with the chat.
 
-Once you have your clone, simply open the repository in the IDE of your choice. The usual recommendation for an IDE is either IntelliJ IDEA or Eclipse.
+This incompatibility was discovered when running a server with [Solstice Essentials](https://modrinth.com/mod/solstice-essentials) installed.
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything 
-{this does not affect your code} and then start the process again.
-
-Mapping Names:
-============
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields 
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
-
-Additional Resources: 
-==========
-Community Documentation: https://docs.neoforged.net/  
-NeoForged Discord: https://discord.neoforged.net/
+It essentially injects a mixin into the `EntityPlayerMPFake` class from Carpet and ensures the fake player is registered with LuckPerms before the player is spawned into the world.

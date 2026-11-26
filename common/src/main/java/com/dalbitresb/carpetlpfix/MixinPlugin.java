@@ -1,11 +1,13 @@
 package com.dalbitresb.carpetlpfix;
 
-import net.neoforged.fml.loading.LoadingModList;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
+import com.dalbitresb.carpetlpfix.platform.IPlatformHelper;
+
 import java.util.List;
+import java.util.ServiceLoader;
 import java.util.Set;
 
 public class MixinPlugin implements IMixinConfigPlugin {
@@ -14,9 +16,12 @@ public class MixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public void onLoad(String mixinPackage) {
-        LoadingModList modList = LoadingModList.get();
-        boolean hasCarpet = modList.getModFileById("carpet") != null;
-        boolean hasLuckPerms = modList.getModFileById("luckperms") != null;
+        IPlatformHelper platform = ServiceLoader.load(IPlatformHelper.class, MixinPlugin.class.getClassLoader())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Failed to load IPlatformHelper service implementation"));
+
+        boolean hasCarpet = platform.isModLoaded("carpet");
+        boolean hasLuckPerms = platform.isModLoaded("luckperms");
         this.bothModsLoaded = hasCarpet && hasLuckPerms;
     }
 
