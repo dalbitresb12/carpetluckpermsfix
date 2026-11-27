@@ -7,3 +7,7 @@ This prevents issues where a fake player can't login or users are unable to run 
 This incompatibility was discovered when running a server with [Solstice Essentials](https://modrinth.com/mod/solstice-essentials) installed.
 
 It essentially injects a mixin into the `EntityPlayerMPFake` class from Carpet and ensures the fake player is registered with LuckPerms before the player is spawned into the world.
+
+## Related issues
+
+- [gnembon/fabric-carpet#1966](https://github.com/gnembon/fabric-carpet/issues/1966)
