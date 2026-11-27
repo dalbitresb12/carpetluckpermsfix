@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.find_run.outputs.run_id }}
+    steps:
+      - name: Verify commit has a Build run on main
+        id: find_run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          # Brief retry loop in case tag and branch were pushed simultaneously
+          for i in 1 2 3 4 5; do
+            RUN_ID=$(gh api "repos/${REPO}/actions/workflows/build.yml/runs?head_sha=${SHA}&event=push&branch=main" \
+              --jq '.workflow_runs[0].id // empty')
+            [ -n "$RUN_ID" ] && break
+            sleep 3
+          done
+
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::Commit ${SHA} was not pushed to main (no Build workflow run found). Rejecting release."
+            exit 1
+          fi
+
+          echo "Found Build run ${RUN_ID} on main. Waiting for completion..."
+          gh run watch "${RUN_ID}" --repo "${REPO}" --exit-status
+          echo "run_id=${RUN_ID}" >> "$GITHUB_OUTPUT"
+      - name: Verify tag matches gradle.properties
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          PROPS=$(gh api "repos/${REPO}/contents/gradle.properties?ref=${SHA}" \
+            -H "Accept: application/vnd.github.raw+json")
+
+          MOD_VER=$(echo "$PROPS" | grep -E '^mod_version=' | cut -d'=' -f2 | tr -d '[:space:]')
+          MC_VER=$(echo "$PROPS" | grep -E '^minecraft_version=' | cut -d'=' -f2 | tr -d '[:space:]')
+          EXPECTED_TAG="v${MOD_VER}+${MC_VER}"
+
+          if [ "$TAG_NAME" != "$EXPECTED_TAG" ]; then
+            echo "::error::Tag ${TAG_NAME} does not match expected ${EXPECTED_TAG} from gradle.properties."
+            exit 1
+          fi
+          echo "Verified tag ${TAG_NAME} matches gradle.properties."
+  publish:
+    runs-on: ubuntu-latest
+    needs: validate
+    environment:
+      name: release
+      url: ${{ steps.mc-publish.outputs.modrinth-url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Download build artifacts from main Build run
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: build-artifacts
+          path: dist
+          run-id: ${{ needs.validate.outputs.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Publish to GitHub Releases and Modrinth
+        id: mc-publish
+        uses: Kira-NT/mc-publish@v3.3.2
+        with:
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-generate-changelog: true
+          files: dist/*.jar
+          environment: client? | server
+
+      - name: Sync README.md to Modrinth description
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_PROJECT_ID: ${{ vars.MODRINTH_PROJECT_ID }}
+        run: |
+          jq -Rs '{body: .}' README.md | curl -fsSL -X PATCH \
+            "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}" \
+            -H "Authorization: ${MODRINTH_TOKEN}" \
+            -H "User-Agent: dalbitresb12/carpetluckpermsfix (github-actions)" \
+            -H "Content-Type: application/json" \
+            --data-binary @-

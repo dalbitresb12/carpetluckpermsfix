@@ -22,8 +22,16 @@
     "minecraft": "${minecraft_version}",
     "java": ">=${java_version}"
   },
-  "suggests": {
+  "recommends": {
     "luckperms": ">=${luckperms_version}",
     "carpet": ">=${carpet_version}"
+  },
+  "custom": {
+    "mc-publish": {
+      "dependencies": [
+        "luckperms(recommended){modrinth:Vebnzrzj}",
+        "carpet@(recommended){modrinth:TQTTVgYE}"
+      ]
+    }
   }
 }
